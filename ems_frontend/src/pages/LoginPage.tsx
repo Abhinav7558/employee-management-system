@@ -4,9 +4,11 @@ import { loginSchema } from "../validation/loginSchema";
 import type { LoginSchema } from "../validation/loginSchema";
 import axios from "axios";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 function LoginPage() {
-  const [error, setError] = useState("");
+  const [serverError, setServerError] = useState("");
+  const navigate = useNavigate();
 
   const {
     register,
@@ -17,8 +19,8 @@ function LoginPage() {
   });
 
   const onSubmit = async (data: LoginSchema) => {
+    setServerError("");
     try {
-      console.log("Sending login request with:", data);
       const response = await axios.post(
         `${import.meta.env.VITE_API_URL}/auth/login/`,
         data
@@ -27,17 +29,17 @@ function LoginPage() {
 
       localStorage.setItem("access_token", access);
       localStorage.setItem("refresh_token", refresh);
-      console.log("Login successful. Tokens saved to localStorage.");
+
+      navigate("/dashboard");
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
         const message =
           err.response?.data?.detail ||
           err.response?.data?.message ||
           "Login failed";
-        setError(message);
-        console.error("Login error:", err);
+        setServerError(message);
       } else {
-        setError("Something went wrong. Please try again.");
+        setServerError("Something went wrong. Please try again.");
       }
     }
   };
@@ -46,17 +48,12 @@ function LoginPage() {
     <form onSubmit={handleSubmit(onSubmit)} className="max-w-md mx-auto p-4">
       <h2 className="text-xl font-bold mb-4">Login</h2>
 
-      {error && <div className="text-red-500">{error}</div>}
-
       <div className="mb-4">
         <input
           {...register("username")}
           placeholder="Username"
-          className="w-full mb-2 p-2 border"
+          className="w-full mb-2 p-2 border rounded"
         />
-        {errors.username && (
-          <p className="text-sm text-red-500">{errors.username.message}</p>
-        )}
       </div>
 
       <div className="mb-4">
@@ -64,20 +61,21 @@ function LoginPage() {
           type="password"
           {...register("password")}
           placeholder="Password"
-          className="w-full mb-2 p-2 border"
+          className="w-full mb-2 p-2 border rounded"
         />
-        {errors.password && (
-          <p className="text-sm text-red-500">{errors.password.message}</p>
-        )}
       </div>
 
-      <div className="mb-4">
-        <button
-          type="submit"
-          className="bg-blue-500 text-white px-4 py-2 mt-2 rounded"
-        >
-          Login
-        </button>
+      <button
+        type="submit"
+        className="bg-blue-500 text-white px-4 py-2 mt-2 rounded w-full"
+      >
+        Login
+      </button>
+
+      <div className="mt-4 text-red-500 text-sm space-y-1">
+        {errors.username && <p>{errors.username.message}</p>}
+        {errors.password && <p>{errors.password.message}</p>}
+        {serverError && <p>{serverError}</p>}
       </div>
     </form>
   );
