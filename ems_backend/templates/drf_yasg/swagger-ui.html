@@ -1,0 +1,14 @@
+{% extends "drf_yasg/swagger-ui.html" %} {% block extrahead %} {{ block.super }}
+<script>
+  window.onload = function () {
+    const ui = SwaggerUIBundle({
+      url: "{{ schema_url }}",
+      dom_id: "#swagger-ui",
+      presets: [SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset],
+      layout: "StandaloneLayout",
+      persistAuthorization: true,
+    });
+    window.ui = ui;
+  };
+</script>
+{% endblock %}
