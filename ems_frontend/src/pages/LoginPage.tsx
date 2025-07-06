@@ -18,6 +18,7 @@ function LoginPage() {
 
   const onSubmit = async (data: LoginSchema) => {
     try {
+      console.log("Sending login request with:", data);
       const response = await axios.post(
         `${import.meta.env.VITE_API_URL}/auth/login/`,
         data
@@ -26,6 +27,7 @@ function LoginPage() {
 
       localStorage.setItem("access_token", access);
       localStorage.setItem("refresh_token", refresh);
+      console.log("Login successful. Tokens saved to localStorage.");
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
         const message =
@@ -33,6 +35,7 @@ function LoginPage() {
           err.response?.data?.message ||
           "Login failed";
         setError(message);
+        console.error("Login error:", err);
       } else {
         setError("Something went wrong. Please try again.");
       }
