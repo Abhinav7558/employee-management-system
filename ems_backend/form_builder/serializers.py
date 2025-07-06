@@ -6,7 +6,7 @@ from .models import FormTemplate, FormField
 class FormFieldSerializer(serializers.ModelSerializer):
     class Meta:
         model = FormField
-        fields = '__all__'
+        exclude = ['form_template']
 
 
 class FormTemplateSerializer(serializers.ModelSerializer):
@@ -27,12 +27,10 @@ class FormTemplateSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         fields_data = validated_data.pop('fields', [])
 
-        # Update main form template fields
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
 
-        # Update form fields — simplest way: delete and recreate
         instance.fields.all().delete()
         for field_data in fields_data:
             FormField.objects.create(form_template=instance, **field_data)

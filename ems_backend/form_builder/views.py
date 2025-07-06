@@ -1,8 +1,10 @@
+from django.http import Http404
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q
+from rest_framework.exceptions import NotFound
 
 from .models import FormTemplate, FormField
 from .serializers import FormTemplateSerializer
@@ -25,6 +27,26 @@ class FormTemplateViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(is_active=is_active.lower() == 'true')
 
         return queryset
+    
+    def get_object(self):
+        try:
+            return super().get_object()
+        except Http404:
+            raise NotFound(detail="Form template not found.")
+    
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+
+        if not queryset.exists():
+            return Response({"message": "No forms available"}, status=status.HTTP_200_OK)
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
@@ -36,7 +58,7 @@ class FormTemplateViewSet(viewsets.ModelViewSet):
             duplicated = FormTemplate.objects.create(
                 name=f"{original.name} (Copy)",
                 description=original.description,
-                created_by=request.user,  # ensure this uses current user
+                created_by=request.user,
                 is_active=original.is_active
             )
 
