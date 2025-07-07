@@ -20,7 +20,7 @@ export interface EmployeeFieldValue {
 export interface EmployeeFormData {
   form_template_id: number;
   field_values: {
-    form_field: number;
+    form_field_id: number;
     field_value: string;
   }[];
 }

@@ -7,6 +7,7 @@ import FormBuilderPage from "./pages/FormBuilderPage";
 import DashboardPage from "./pages/DashboardPage";
 import ProtectedLayout from "./components/ProtectedLayout";
 import FormDetailPage from "./pages/FormDetailPage";
+import EmployeePage from "./pages/EmployeePage";
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
           <Route path="/change-password" element={<ChangePasswordPage />} />
           <Route path="/form" element={<FormBuilderPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/employees" element={<EmployeePage />} />
         </Route>
       </Routes>
     </BrowserRouter>

@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import {
   getEmployees,
   createEmployee,
-  updateEmployee,
   deleteEmployee,
 } from "../services/employeeservice";
 import { getFormTemplates } from "../services/formService";
@@ -16,9 +15,6 @@ import axios from "axios";
 export default function EmployeePage() {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [formTemplates, setFormTemplates] = useState<FormTemplate[]>([]);
-  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(
-    null
-  );
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -28,7 +24,8 @@ export default function EmployeePage() {
     setError("");
     try {
       const res = await getEmployees();
-      setEmployees(res.data.results);
+      const data = Array.isArray(res.data) ? res.data : res.data.results || [];
+      setEmployees(data);
     } catch (err) {
       if (axios.isAxiosError(err)) {
         setError(err.response?.data?.detail || "Failed to load employees");
@@ -43,53 +40,33 @@ export default function EmployeePage() {
   const fetchTemplates = async () => {
     try {
       const res = await getFormTemplates();
-      setFormTemplates(res.data.results);
+      const templates = Array.isArray(res.data)
+        ? res.data
+        : res.data.results || [];
+      setFormTemplates(templates);
     } catch {
       setError("Failed to load form templates");
     }
   };
 
-  const handleCreate = async (data: {
-    formTemplateId: number;
-    fieldValues: Record<string, string>;
-  }) => {
-    const payload: EmployeeFormData = {
-      form_template_id: data.formTemplateId,
-      field_values: Object.entries(data.fieldValues).map(
-        ([form_field, field_value]) => ({
-          form_field: parseInt(form_field),
-          field_value,
-        })
-      ),
-    };
-    await createEmployee(payload);
-    fetchEmployees();
-    setIsModalOpen(false);
-  };
-
-  const handleUpdate = async (data: {
-    formTemplateId: number;
-    fieldValues: Record<string, string>;
-  }) => {
-    if (!selectedEmployee) return;
-    const payload: EmployeeFormData = {
-      form_template_id: data.formTemplateId,
-      field_values: Object.entries(data.fieldValues).map(
-        ([form_field, field_value]) => ({
-          form_field: parseInt(form_field),
-          field_value,
-        })
-      ),
-    };
-    await updateEmployee(selectedEmployee.id, payload);
-    fetchEmployees();
-    setSelectedEmployee(null);
+  const handleCreate = async (data: EmployeeFormData) => {
+    try {
+      await createEmployee(data);
+      await fetchEmployees();
+      setIsModalOpen(false);
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        setError(err.response?.data?.detail || "Failed to create employee");
+      } else {
+        setError("Unexpected error");
+      }
+    }
   };
 
   const handleDelete = async (id: number) => {
     try {
       await deleteEmployee(id);
-      fetchEmployees();
+      await fetchEmployees();
     } catch {
       setError("Failed to delete employee");
     }
@@ -116,27 +93,24 @@ export default function EmployeePage() {
 
       {loading ? (
         <p>Loading...</p>
+      ) : employees.length === 0 ? (
+        <p className="text-gray-500">No employees found.</p>
       ) : (
         <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
           {employees.map((emp) => (
             <div key={emp.id} className="bg-white shadow p-4 rounded">
               <h3 className="text-lg font-semibold mb-2">
-                Template: {emp.formTemplate.name}
+                Employee ID: {emp.id}
               </h3>
               <ul className="text-sm text-gray-600 space-y-1">
-                {emp.fieldValues.map((fv) => (
+                {emp.fieldValues?.map((fv) => (
                   <li key={fv.id}>
-                    <strong>{fv.formField.label}:</strong> {fv.fieldValue}
+                    <strong>{fv.formField?.fieldLabel || "Unnamed"}:</strong>{" "}
+                    {fv.fieldValue}
                   </li>
                 ))}
               </ul>
               <div className="flex gap-3 mt-3">
-                <button
-                  onClick={() => setSelectedEmployee(emp)}
-                  className="text-blue-600 hover:underline"
-                >
-                  Edit
-                </button>
                 <button
                   onClick={() => handleDelete(emp.id)}
                   className="text-red-600 hover:underline"
@@ -150,18 +124,11 @@ export default function EmployeePage() {
       )}
 
       <Modal
-        isOpen={isModalOpen || selectedEmployee !== null}
-        onClose={() => {
-          setIsModalOpen(false);
-          setSelectedEmployee(null);
-        }}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
         title="Employee Form"
       >
-        <EmployeeForm
-          initialData={selectedEmployee}
-          formTemplates={formTemplates}
-          onSubmit={selectedEmployee ? handleUpdate : handleCreate}
-        />
+        <EmployeeForm formTemplates={formTemplates} onSubmit={handleCreate} />
       </Modal>
     </div>
   );
