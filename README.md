@@ -125,3 +125,5 @@ Postman collection available in the repo at:
 ```
 https://.postman.co/workspace/My-Workspace~3fe2ebdb-7c17-453d-8c74-2e84c4f7bd72/collection/21425277-ea65745c-6b93-4f7c-84e6-7ededa63e6a0?action=share&creator=21425277
 ```
+
+Havent completed the profile page and emplotee, update and detail page in frontend due to time limitations
