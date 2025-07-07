@@ -11,6 +11,7 @@ import FormDesigner from "../components/forms/FormDesigner";
 import Modal from "../components/shared/Modal";
 import { Plus } from "lucide-react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 export default function FormBuilderPage() {
   const [formTemplates, setFormTemplates] = useState<FormTemplate[]>([]);
@@ -18,6 +19,8 @@ export default function FormBuilderPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const navigate = useNavigate();
 
   const fetchForms = async () => {
     setLoading(true);
@@ -140,6 +143,12 @@ export default function FormBuilderPage() {
                   className="text-blue-600 hover:underline"
                 >
                   Edit
+                </button>
+                <button
+                  onClick={() => navigate(`/forms/${form.id}`)}
+                  className="text-green-600 hover:underline"
+                >
+                  View
                 </button>
                 <button
                   onClick={() => handleDuplicate(form.id!)}

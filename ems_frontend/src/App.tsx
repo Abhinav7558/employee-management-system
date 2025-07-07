@@ -6,6 +6,7 @@ import ChangePasswordPage from "./pages/ChangePasswordPage";
 import FormBuilderPage from "./pages/FormBuilderPage";
 import DashboardPage from "./pages/DashboardPage";
 import ProtectedLayout from "./components/ProtectedLayout";
+import FormDetailPage from "./pages/FormDetailPage";
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
         <Route path="/register" element={<RegisterPage />} />
 
         <Route element={<ProtectedLayout />}>
+          <Route path="/forms/:id" element={<FormDetailPage />} />
           <Route path="/change-password" element={<ChangePasswordPage />} />
           <Route path="/form" element={<FormBuilderPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
