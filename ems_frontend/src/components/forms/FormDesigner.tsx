@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { DndContext, closestCenter } from "@dnd-kit/core";
 import type { DragEndEvent } from "@dnd-kit/core";
 import {
@@ -30,6 +30,19 @@ const fieldTypes = [
   { type: "PASSWORD", label: "Password" },
 ];
 
+const sanitizeFields = (rawFields: FormField[]): FormField[] => {
+  return rawFields.map((f, idx) => ({
+    id: f.id ?? `field-${idx}`,
+    fieldLabel: f.fieldLabel ?? `Field ${idx + 1}`,
+    fieldName: f.fieldName ?? `field_${idx + 1}`,
+    fieldType: f.fieldType ?? "TEXT",
+    isRequired: f.isRequired ?? false,
+    fieldOrder: f.fieldOrder ?? idx,
+    fieldOptions: f.fieldOptions ?? null,
+    validationRules: f.validationRules ?? null,
+  }));
+};
+
 function SortableField({
   field,
   index,
@@ -48,36 +61,42 @@ function SortableField({
     <div
       ref={setNodeRef}
       style={style}
-      className="p-2 border rounded mb-2 bg-gray-50 shadow"
+      className="p-3 border rounded mb-2 bg-gray-50 shadow"
     >
-      <div className="flex gap-2 items-center">
+      <div className="flex gap-3 items-start">
         <div
           {...attributes}
           {...listeners}
-          className="cursor-grab px-2 text-gray-500"
+          className="cursor-grab pt-6 px-2 text-gray-500"
           title="Drag to reorder"
         >
           ☰
         </div>
 
-        <input
-          type="text"
-          value={field.fieldLabel}
-          onChange={(e) => onLabelChange(index, e.target.value)}
-          className="flex-1 p-1 border rounded bg-gray-100 text-gray-700"
-        />
+        <div className="flex-1">
+          <label className="block text-sm text-gray-600 mb-1">Label</label>
+          <input
+            type="text"
+            value={field.fieldLabel || ""}
+            onChange={(e) => onLabelChange(index, e.target.value)}
+            className="w-full p-2 border rounded bg-white text-gray-700"
+          />
+        </div>
 
-        <select
-          value={field.fieldType}
-          onChange={(e) => onTypeChange(index, e.target.value)}
-          className="p-1 border rounded"
-        >
-          {fieldTypes.map((f) => (
-            <option key={f.type} value={f.type}>
-              {f.label}
-            </option>
-          ))}
-        </select>
+        <div>
+          <label className="block text-sm text-gray-600 mb-1">Type</label>
+          <select
+            value={field.fieldType}
+            onChange={(e) => onTypeChange(index, e.target.value)}
+            className="p-2 border rounded w-28"
+          >
+            {fieldTypes.map((f) => (
+              <option key={f.type} value={f.type}>
+                {f.label}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
     </div>
   );
@@ -91,7 +110,18 @@ export default function FormDesigner({
   const [description, setDescription] = useState(
     initialData?.description || ""
   );
-  const [fields, setFields] = useState<FormField[]>(initialData?.fields || []);
+  const [fields, setFields] = useState<FormField[]>(
+    initialData?.fields ? sanitizeFields(initialData.fields) : []
+  );
+  console.log("initialData:", initialData);
+
+  useEffect(() => {
+    if (initialData) {
+      setName(initialData.name || "");
+      setDescription(initialData.description || "");
+      setFields(initialData.fields ? sanitizeFields(initialData.fields) : []);
+    }
+  }, [initialData]);
 
   const handleAddField = () => {
     const newField: FormField = {
@@ -129,19 +159,25 @@ export default function FormDesigner({
   };
 
   const handleSubmit = () => {
-    const transformedFields = fields.map((field, index) => ({
-      ...field,
-      fieldName: field.fieldLabel.toLowerCase().replace(/\s+/g, "_"),
-      fieldOrder: index,
-    }));
+    const transformedFields = fields.map((field, index) => {
+      const safeLabel = field.fieldLabel?.trim() || `Field ${index + 1}`;
+      return {
+        ...field,
+        fieldLabel: safeLabel,
+        fieldName: safeLabel.toLowerCase().replace(/\s+/g, "_"),
+        fieldType: field.fieldType ?? "TEXT", // ✅ Ensure field_type is always present
+        fieldOrder: index,
+      };
+    });
 
     const payload: FormTemplate = {
       ...initialData,
-      name,
-      description,
+      name: name.trim(),
+      description: description.trim(),
       fields: transformedFields,
     };
 
+    console.log("Payload being submitted:", payload);
     onSubmit(payload);
   };
 
