@@ -31,7 +31,7 @@ const fieldTypes = [
 
 function SortableField({ field, index, onChange }: SortableFieldProps) {
   const { attributes, listeners, setNodeRef, transform, transition } =
-    useSortable({ id: field.id });
+    useSortable({ id: field.id ?? `field-${index}` });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -48,12 +48,14 @@ function SortableField({ field, index, onChange }: SortableFieldProps) {
     >
       <input
         type="text"
-        value={field.label}
-        onChange={(e) => onChange(index, { ...field, label: e.target.value })}
+        value={field.fieldLabel}
+        onChange={(e) =>
+          onChange(index, { ...field, fieldLabel: e.target.value })
+        }
         placeholder="Label"
         className="w-full p-1 border mb-1"
       />
-      <p className="text-sm text-gray-600">{field.type}</p>
+      <p className="text-sm text-gray-600">{field.fieldType}</p>
     </div>
   );
 }
@@ -71,9 +73,14 @@ export default function FormDesigner({
   const handleAddField = (type: string) => {
     const newField: FormField = {
       id: Math.random().toString(),
-      label: `${type} Field`,
-      type,
-    } as FormField;
+      fieldName: "",
+      fieldLabel: `${type} Field`,
+      fieldType: type,
+      isRequired: false,
+      fieldOrder: fields.length,
+      fieldOptions: null,
+      validationRules: null,
+    };
     setFields([...fields, newField]);
   };
 
@@ -93,7 +100,23 @@ export default function FormDesigner({
   };
 
   const handleSubmit = () => {
-    onSubmit({ ...initialData, name, description, fields } as FormTemplate);
+    // auto-generate fieldName and order before sending
+    const transformedFields = fields.map((field, index) => ({
+      ...field,
+      fieldName: (field.fieldLabel ?? `field_${index}`)
+        .toLowerCase()
+        .replace(/\s+/g, "_"),
+      fieldOrder: index,
+    }));
+
+    const payload: FormTemplate = {
+      ...initialData,
+      name,
+      description,
+      fields: transformedFields,
+    };
+
+    onSubmit(payload);
   };
 
   return (
@@ -125,7 +148,7 @@ export default function FormDesigner({
 
       <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext
-          items={fields.map((f) => f.id)}
+          items={fields.map((f, i) => f.id ?? `field-${i}`)}
           strategy={verticalListSortingStrategy}
         >
           {fields.map((field, index) => (

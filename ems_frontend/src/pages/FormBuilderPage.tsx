@@ -24,7 +24,9 @@ export default function FormBuilderPage() {
     setError("");
     try {
       const res = await getFormTemplates();
-      setFormTemplates(res.data.results);
+      setFormTemplates(
+        Array.isArray(res.data) ? res.data : res.data.results || []
+      );
     } catch (err: unknown) {
       if (axios.isAxiosError(err)) {
         const message =
@@ -33,12 +35,30 @@ export default function FormBuilderPage() {
       } else {
         setError("Unexpected error");
       }
+    } finally {
+      setLoading(false);
     }
   };
 
+  const transformFieldsToSnakeCase = (form: FormTemplate) =>
+    form.fields.map((f, index) => ({
+      field_name: f.fieldLabel.toLowerCase().replace(/\s+/g, "_"),
+      field_label: f.fieldLabel,
+      field_type: f.fieldType,
+      is_required: f.isRequired ?? false,
+      field_order: index,
+      field_options: f.fieldOptions ?? null,
+      validation_rules: f.validationRules ?? null,
+    }));
+
   const handleCreate = async (form: FormTemplate) => {
     try {
-      await createFormTemplate(form);
+      const transformedForm = {
+        name: form.name,
+        description: form.description,
+        fields: transformFieldsToSnakeCase(form),
+      };
+      await createFormTemplate(transformedForm);
       fetchForms();
       setIsModalOpen(false);
     } catch {
@@ -49,7 +69,12 @@ export default function FormBuilderPage() {
   const handleUpdate = async (form: FormTemplate) => {
     if (form.id) {
       try {
-        await updateFormTemplate(form.id, form);
+        const transformedForm = {
+          name: form.name,
+          description: form.description,
+          fields: transformFieldsToSnakeCase(form),
+        };
+        await updateFormTemplate(form.id, transformedForm);
         fetchForms();
         setSelectedForm(null);
       } catch {
@@ -59,6 +84,11 @@ export default function FormBuilderPage() {
   };
 
   const handleDelete = async (id: number) => {
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this form?"
+    );
+    if (!confirmed) return;
+
     try {
       await deleteFormTemplate(id);
       fetchForms();
@@ -96,6 +126,8 @@ export default function FormBuilderPage() {
 
       {loading ? (
         <p>Loading...</p>
+      ) : formTemplates.length === 0 ? (
+        <p className="text-gray-500">No forms created yet.</p>
       ) : (
         <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
           {formTemplates.map((form) => (

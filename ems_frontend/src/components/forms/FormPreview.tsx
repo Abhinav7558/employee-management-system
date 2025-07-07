@@ -7,11 +7,13 @@ export default function FormPreview({ fields }: { fields: FormField[] }) {
       <form className="space-y-3">
         {fields.map((field) => (
           <div key={field.id}>
-            <label className="block text-sm mb-1">{field.label}</label>
+            <label className="block text-sm mb-1">
+              {field.fieldLabel ?? "Unnamed Field"}
+            </label>
             <input
-              type={field.type.toLowerCase()}
+              type={(field.fieldType ?? "text").toLowerCase()}
               className="w-full p-2 border rounded"
-              placeholder={field.label}
+              placeholder={field.fieldLabel ?? ""}
             />
           </div>
         ))}

@@ -6,7 +6,16 @@ from .models import FormTemplate, FormField
 class FormFieldSerializer(serializers.ModelSerializer):
     class Meta:
         model = FormField
-        exclude = ['form_template']
+        fields = [
+            'id',
+            'field_name',
+            'field_label',
+            'field_type',
+            'is_required',
+            'field_order',
+            'field_options',
+            'validation_rules',
+        ]
 
 
 class FormTemplateSerializer(serializers.ModelSerializer):
