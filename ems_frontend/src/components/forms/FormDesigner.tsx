@@ -9,7 +9,6 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { FormField, FormTemplate } from "../../types/form";
-import FormPreview from "./FormPreview";
 
 interface FormDesignerProps {
   initialData: FormTemplate | null;
@@ -19,7 +18,8 @@ interface FormDesignerProps {
 interface SortableFieldProps {
   field: FormField;
   index: number;
-  onChange: (index: number, updated: FormField) => void;
+  onTypeChange: (index: number, type: string) => void;
+  onLabelChange: (index: number, label: string) => void;
 }
 
 const fieldTypes = [
@@ -27,9 +27,15 @@ const fieldTypes = [
   { type: "NUMBER", label: "Number" },
   { type: "EMAIL", label: "Email" },
   { type: "DATE", label: "Date" },
+  { type: "PASSWORD", label: "Password" },
 ];
 
-function SortableField({ field, index, onChange }: SortableFieldProps) {
+function SortableField({
+  field,
+  index,
+  onTypeChange,
+  onLabelChange,
+}: SortableFieldProps) {
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id: field.id ?? `field-${index}` });
 
@@ -42,20 +48,37 @@ function SortableField({ field, index, onChange }: SortableFieldProps) {
     <div
       ref={setNodeRef}
       style={style}
-      {...attributes}
-      {...listeners}
       className="p-2 border rounded mb-2 bg-gray-50 shadow"
     >
-      <input
-        type="text"
-        value={field.fieldLabel}
-        onChange={(e) =>
-          onChange(index, { ...field, fieldLabel: e.target.value })
-        }
-        placeholder="Label"
-        className="w-full p-1 border mb-1"
-      />
-      <p className="text-sm text-gray-600">{field.fieldType}</p>
+      <div className="flex gap-2 items-center">
+        <div
+          {...attributes}
+          {...listeners}
+          className="cursor-grab px-2 text-gray-500"
+          title="Drag to reorder"
+        >
+          ☰
+        </div>
+
+        <input
+          type="text"
+          value={field.fieldLabel}
+          onChange={(e) => onLabelChange(index, e.target.value)}
+          className="flex-1 p-1 border rounded bg-gray-100 text-gray-700"
+        />
+
+        <select
+          value={field.fieldType}
+          onChange={(e) => onTypeChange(index, e.target.value)}
+          className="p-1 border rounded"
+        >
+          {fieldTypes.map((f) => (
+            <option key={f.type} value={f.type}>
+              {f.label}
+            </option>
+          ))}
+        </select>
+      </div>
     </div>
   );
 }
@@ -70,12 +93,12 @@ export default function FormDesigner({
   );
   const [fields, setFields] = useState<FormField[]>(initialData?.fields || []);
 
-  const handleAddField = (type: string) => {
+  const handleAddField = () => {
     const newField: FormField = {
       id: Math.random().toString(),
       fieldName: "",
-      fieldLabel: `${type} Field`,
-      fieldType: type,
+      fieldLabel: `Field ${fields.length + 1}`,
+      fieldType: "TEXT",
       isRequired: false,
       fieldOrder: fields.length,
       fieldOptions: null,
@@ -84,9 +107,15 @@ export default function FormDesigner({
     setFields([...fields, newField]);
   };
 
-  const handleFieldChange = (index: number, updated: FormField) => {
+  const handleFieldTypeChange = (index: number, type: string) => {
     const newFields = [...fields];
-    newFields[index] = updated;
+    newFields[index].fieldType = type;
+    setFields(newFields);
+  };
+
+  const handleFieldLabelChange = (index: number, label: string) => {
+    const newFields = [...fields];
+    newFields[index].fieldLabel = label;
     setFields(newFields);
   };
 
@@ -100,12 +129,9 @@ export default function FormDesigner({
   };
 
   const handleSubmit = () => {
-    // auto-generate fieldName and order before sending
     const transformedFields = fields.map((field, index) => ({
       ...field,
-      fieldName: (field.fieldLabel ?? `field_${index}`)
-        .toLowerCase()
-        .replace(/\s+/g, "_"),
+      fieldName: field.fieldLabel.toLowerCase().replace(/\s+/g, "_"),
       fieldOrder: index,
     }));
 
@@ -122,28 +148,25 @@ export default function FormDesigner({
   return (
     <div>
       <input
-        className="w-full mb-2 p-2 border"
+        className="w-full mb-2 p-2 border rounded"
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder="Form Name"
       />
       <textarea
-        className="w-full mb-2 p-2 border"
+        className="w-full mb-2 p-2 border rounded"
         value={description}
         onChange={(e) => setDescription(e.target.value)}
         placeholder="Form Description"
       />
 
-      <div className="mb-4 flex gap-2 flex-wrap">
-        {fieldTypes.map((f) => (
-          <button
-            key={f.type}
-            onClick={() => handleAddField(f.type)}
-            className="bg-blue-100 px-2 py-1 rounded text-sm"
-          >
-            + {f.label}
-          </button>
-        ))}
+      <div className="mb-4">
+        <button
+          onClick={handleAddField}
+          className="bg-blue-100 px-4 py-1 rounded text-sm border"
+        >
+          + Add Field
+        </button>
       </div>
 
       <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
@@ -156,21 +179,21 @@ export default function FormDesigner({
               key={field.id}
               field={field}
               index={index}
-              onChange={handleFieldChange}
+              onTypeChange={handleFieldTypeChange}
+              onLabelChange={handleFieldLabelChange}
             />
           ))}
         </SortableContext>
       </DndContext>
 
-      <button
-        onClick={handleSubmit}
-        className="mt-4 bg-blue-600 text-white px-4 py-2 rounded"
-      >
-        Save
-      </button>
-
-      <hr className="my-4" />
-      <FormPreview fields={fields} />
+      <div className="flex justify-center mt-4">
+        <button
+          onClick={handleSubmit}
+          className="bg-blue-600 text-white px-4 py-2 rounded"
+        >
+          Save
+        </button>
+      </div>
     </div>
   );
 }
